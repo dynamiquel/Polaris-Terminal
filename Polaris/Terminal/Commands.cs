@@ -38,8 +38,8 @@ namespace Polaris.Terminal
             public override string Category { get; protected set; } = "Misc";
             public override string Description { get; protected set; } = "Shows what a command does and how to use it";
 
-            [CommandParameter("command ID")] public string commandId;
-            
+            [CommandParameter("command ID")] public string commandId = "help";
+
             public override LogMessage Execute()
             {
                 Terminal.Log(commandId);
@@ -56,13 +56,27 @@ namespace Polaris.Terminal
                             requiredArgumentsSB.Append($"({item}) ");
     */
                         sb.AppendLine($"Manual (help) for the '{cmd.Name}' command");
-                        sb.AppendLine($"\tCategory: {cmd.Category}");
                         sb.AppendLine($"\tCommand: {cmd.Id}");
-                        //sb.AppendLine($"\tRequired Arguments: {requiredArgumentsSB}");
-                        sb.AppendLine($"\tOptional Arguments: {cmd.SoftParameterInfo}");
+                        if (!string.IsNullOrEmpty(cmd.Category))
+                            sb.AppendLine($"\tCategory: {cmd.Category}");
+                        
+                        if (cmd.Parameters != null && cmd.Parameters.Count > 0)
+                        {
+                            sb.Append($"\tRequired Arguments:");
+
+                            foreach (var parameter in cmd.Parameters)
+                                sb.Append($" {parameter.Key} ({parameter.Value.genericType}),");
+
+                            sb.Append("\n");
+                        }
+
+                        if (!string.IsNullOrEmpty(cmd.SoftParameterInfo))
+                            sb.AppendLine($"\tOptional Arguments: {cmd.SoftParameterInfo}");
                         sb.AppendLine($"\tPermission Level: {cmd.PermissionLevel.ToString()}");
-                        sb.AppendLine($"\tDescription: {cmd.Description}");
-                        sb.AppendLine($"\tManual: {cmd.Manual}");
+                        if (!string.IsNullOrEmpty(cmd.Description))
+                            sb.AppendLine($"\tDescription: {cmd.Description}");
+                        if (!string.IsNullOrEmpty(cmd.Manual))
+                            sb.AppendLine($"\tManual: {cmd.Manual}");
                     }
                     else
                         sb.AppendLine($"The command '{commandId}' is not valid.");

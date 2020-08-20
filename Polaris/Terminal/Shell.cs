@@ -23,7 +23,7 @@ namespace Polaris.Terminal
         
         private static void RegisterCommands()
         {
-            var commands = Utility.GetTypesWithCommandAttribute(System.AppDomain.CurrentDomain.GetAssemblies());
+            var commands = Utility.GetTypesWithCommandAttribute(AppDomain.CurrentDomain.GetAssemblies());
 
             foreach (var command in commands)
             {
@@ -32,13 +32,12 @@ namespace Polaris.Terminal
 
                 var fields = command.GetType().GetFields();
 
-                Terminal.Log(fields.Length);
                 foreach (var field in fields)
                 {
                     if (field.GetCustomAttribute<CommandParameterAttribute>() == null) 
                         continue;
-                    
-                    // Forked from Reactor-Developer-Console-1.2
+
+                    // Forked from Reactor-Developer-Console v1.2 (https://github.com/mustafayaya/Reactor-Developer-Console)
                     var commandParameterType = typeof(CommandParameter<>);
                     var commandParameterTypeGeneric = commandParameterType.MakeGenericType(field.FieldType);
                     var commandParameter = Activator.CreateInstance(commandParameterTypeGeneric, command, field);
@@ -97,6 +96,7 @@ namespace Polaris.Terminal
 
         public static LogMessage Execute(QueryInfo queryInfo)
         {
+            Terminal.Log(queryInfo.Parameters);
             if (!Commands.ContainsKey(queryInfo.Command))
                 return new LogMessage($"The command '{queryInfo.Command}' does not exist.");
 
@@ -105,20 +105,27 @@ namespace Polaris.Terminal
             if (command.PermissionLevel > Terminal.Settings.PermissionLevel)
                 return new LogMessage($"You do not have the permission to use the '{queryInfo.Command}' command.");
 
-            if (queryInfo.Parameters.Count < command.Parameters?.Count)
-                return new LogMessage($"Not enough parameters sent for the '{command.Id}' command. Expected {command.Parameters.Count}; received {queryInfo.Parameters.Count}.");
-
-            int i = 0;
-            foreach (var parameter in command.Parameters)
+            // If the command has parameters.
+            if (command.Parameters != null)
             {
-                Type parameterType = parameter.Value.genericType;
-                MethodInfo method = typeof(Shell).GetMethod("ParamQuery");
-                MethodInfo genericMethod = method.MakeGenericMethod(parameterType);
+                if (queryInfo.Parameters.Count < command.Parameters?.Count)
+                    return new LogMessage(
+                        $"Not enough parameters sent for the '{command.Id}' command. Expected {command.Parameters.Count}; received {queryInfo.Parameters.Count}.");
 
-                var query = genericMethod.Invoke(typeof(Shell), new object[] {queryInfo.Parameters[i]});
-                Terminal.Log(query.ToString());
+                int i = 0;
+                foreach (var parameter in command.Parameters)
+                {
+                    Type parameterType = parameter.Value.GetType().GenericTypeArguments[0];
+                    MethodInfo method = typeof(Shell).GetMethod("ParamQuery");
+                    MethodInfo genericMethod = method.MakeGenericMethod(parameterType);
 
-                i++;
+                    var query = genericMethod.Invoke(typeof(Shell), new object[] {queryInfo.Parameters[i]});
+
+                    if (query != null)
+                        command.Parameters[parameter.Key].Value = query;
+
+                    i++;
+                }
             }
 
             LogMessage result;
@@ -141,8 +148,9 @@ namespace Polaris.Terminal
             return result;
         }
         
-        // Forked from Reactor-Developer-Console-1.2
-        public static object ParamQuery<T>(string parameter)//Make query with given parameter and type
+        // Forked from Reactor-Developer-Console v1.2 (https://github.com/mustafayaya/Reactor-Developer-Console)
+        // Make query with given parameter and type.
+        public static object ParamQuery<T>(string parameter)
         {
             // UNITY-SPECIFIC
             if (typeof(T).IsSubclassOf(typeof(Component)))
@@ -162,38 +170,31 @@ namespace Polaris.Terminal
                 return query;
             }
 
-            else
+            // If parameter string is convertible directly to T return converted.
+            if (Utility.TryConvert<T>(parameter, out var convertedParameter))
+                return convertedParameter;
+
+            var parameters = parameter.Split(',');
+            // Get constructors of T.
+            var constructors = typeof(T).GetConstructors();
+            ConstructorInfo constructor = null;
+
+            // Get the possible decelerations from constructors.
+            foreach (ConstructorInfo constructorInfo in constructors)
             {
-                if (Utility.TryConvert<T>(parameter, out var convertedParameter))//If parameter string is convertable directly to T return converted 
-                {
-                    return convertedParameter;
-                }
-
-                object query = null;
-                var parameters = parameter.Split(',');
-                var constructors = (typeof(T)).GetConstructors();//Get constructors of T
-                ConstructorInfo _constructor = null;
-
-                foreach (ConstructorInfo constructorInfo in constructors)//Get the possible declerations from constructors
-                {
-                    if (constructorInfo.GetParameters().Length == parameters.Length)
-                    {
-                        _constructor = constructorInfo;//Move with this decleration
-                    }
-                }
-                if (_constructor != null)
-                {
-                    var constructionsParametersList = Utility.GetConstructorParametersList(_constructor, parameters);
-                    if (constructionsParametersList != null)
-                    {
-                        query = (T)Activator.CreateInstance(typeof(T), constructionsParametersList.ToArray());
-                        return query;
-
-                    }
-                    return null;
-                }
-                return null;
+                if (constructorInfo.GetParameters().Length == parameters.Length)
+                    // Move with this deceleration.
+                    constructor = constructorInfo; 
             }
+            
+            if (constructor != null)
+            {
+                var constructionsParametersList = Utility.GetConstructorParametersList(constructor, parameters);
+                if (constructionsParametersList != null)
+                    return (T)Activator.CreateInstance(typeof(T), constructionsParametersList.ToArray());
+            }
+            
+            return null;
         }
     }
 }

@@ -267,7 +267,7 @@ namespace Polaris.Terminal
                 }
             }
             
-            for (var i = inputParams.Count - 1; i >= 0; i--)
+            for (var i = 0; i < inputParams.Count; i++)
             {
                 // Removes the excess spacing.
                 inputParams[i] = inputParams[i].Trim();

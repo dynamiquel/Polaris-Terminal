@@ -16,16 +16,19 @@ namespace Polaris.Terminal
         
         public static bool TryConvert<T>(object parameter, out T convertedParameter)
         {
-            convertedParameter = (T)Convert.ChangeType(parameter, typeof(T));
-            if (convertedParameter != null)
+            try
             {
+                convertedParameter = (T)Convert.ChangeType(parameter, typeof(T));
                 return true;
             }
-
-            return false;
+            catch (Exception e)
+            {
+                convertedParameter = default;
+                return false;
+            }
         }
         
-        // Forked from Reactor-Developer-Console-1.2
+        // Forked from Reactor-Developer-Console v1.2 (https://github.com/mustafayaya/Reactor-Developer-Console)
         // Check each parameter in constructor and try to fill the parameters
         public static List<object> GetConstructorParametersList(ConstructorInfo constructorInfo, string[] parameters)
         {

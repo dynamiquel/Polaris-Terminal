@@ -9,7 +9,7 @@ namespace Polaris.Terminal
     public class Command
     {
         public string Id =>
-            ((CommandAttribute) Attribute.GetCustomAttribute(this.GetType(), typeof(CommandAttribute)))
+            ((CommandAttribute) Attribute.GetCustomAttribute(GetType(), typeof(CommandAttribute)))
             .commandId;
         public virtual string Name {get; protected set;} = string.Empty;
         public virtual string Category {get; protected set;} = string.Empty;
@@ -83,10 +83,10 @@ namespace Polaris.Terminal
 
             }
         }
-        public CommandParameter(Command parentCmmand,System.Reflection.FieldInfo fieldInfo)
+        public CommandParameter(Command parentCommand,System.Reflection.FieldInfo fieldInfo)
         {
             genericType = typeof(TOption);
-            command = parentCmmand;
+            command = parentCommand;
             this.fieldInfo = fieldInfo;
         }
     }
