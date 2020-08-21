@@ -12,7 +12,7 @@ namespace Polaris.Terminal.Unity
             public override string Description { get; protected set; } = "Spawns a sphere in the centre of the screen.";
 
             [CommandParameter("position relative to camera")]
-            public Vector3 position;
+            public Vector3 position = new Vector3(0, 0, 10);
             
             public override LogMessage Execute()
             {

@@ -47,12 +47,6 @@ namespace Polaris.Terminal
             
             // NEW SHELL
             var query = ProcessCommandQuery(input);
-            Log(new LogMessage
-            {
-                Content = query.ToString(),
-                LogSource = LogSource.Commands,
-                LogType = LogType.System
-            });
             var result = Shell.Execute(query);
             
             

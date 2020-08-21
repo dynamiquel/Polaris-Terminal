@@ -38,12 +38,11 @@ namespace Polaris.Terminal
             public override string Category { get; protected set; } = "Misc";
             public override string Description { get; protected set; } = "Shows what a command does and how to use it";
 
-            [CommandParameter("command ID", "help")]
-            public string commandId;
+            [CommandParameter("command ID")] 
+            public string commandId = "help";
 
             public override LogMessage Execute()
             {
-                Terminal.Log(commandId);
                 if (Shell.Commands.ContainsKey(commandId))
                 {
                     var sb = new StringBuilder();

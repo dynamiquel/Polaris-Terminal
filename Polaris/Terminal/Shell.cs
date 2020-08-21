@@ -40,11 +40,15 @@ namespace Polaris.Terminal
                     // Forked from Reactor-Developer-Console v1.2 (https://github.com/mustafayaya/Reactor-Developer-Console)
                     var commandParameterType = typeof(CommandParameter<>);
                     var commandParameterTypeGeneric = commandParameterType.MakeGenericType(field.FieldType);
-                    var commandParameter = Activator.CreateInstance(commandParameterTypeGeneric, command, field);
+                    var commandParameter = (CommandParameter)Activator.CreateInstance(commandParameterTypeGeneric, command, field);
                     var commandParameterAttribute = field.GetCustomAttribute<CommandParameterAttribute>();
-                    ((CommandParameter) commandParameter).DefaultValue = commandParameterAttribute.defaultValue;
-                    command.Parameters.Add(commandParameterAttribute.description, (CommandParameter)commandParameter);
-                    commandParameterAttribute.commandParameter = (CommandParameter)commandParameter;
+                    
+                    // Gets the value of the current field and sets it as the default value.
+                    commandParameter.DefaultValue = field.GetValue(command);
+                    // Adds a reference to the field to the Command.
+                    command.Parameters.Add(commandParameterAttribute.description, commandParameter);
+                    // Uhh. Not me.
+                    commandParameterAttribute.commandParameter = commandParameter;
                 }
 
                 // Cache the commandId. Not sure if it's an expensive process but it seems like it.
@@ -112,7 +116,9 @@ namespace Polaris.Terminal
                     
                     // If query is a '&', use the default value.
                     if (queryInfo.Parameters[i] == "&")
+                    {
                         query = parameter.Value.DefaultValue;
+                    }
                     else
                     {
                         Type parameterType = parameter.Value.GetType().GenericTypeArguments[0];

@@ -44,24 +44,22 @@ namespace Polaris.Terminal
     internal sealed class CommandParameterAttribute : System.Attribute
     {
         public readonly string description;
-        public readonly object defaultValue;
         public CommandParameter commandParameter;
         
-        public CommandParameterAttribute(string description, object defaultValue = null)
+        public CommandParameterAttribute(string description)
         {
             this.description = description;
-            this.defaultValue = defaultValue;
         }
     }
     
-    // Kinda confused what this and all below code does. Forked from Reactor-Developer-Console-1.2.
+    // Forked from Reactor-Developer-Console-1.2.
     public abstract class CommandParameter
     {
         private object value;
         private object defaultValue;
         public Type genericType;
         public Command command; //Invokable command that uses this as a parameter
-        public System.Reflection.FieldInfo fieldInfo; //field name of command linked to this parameter
+        public System.Reflection.FieldInfo fieldInfo; // Field name of command linked to this parameter
 
         public object Value
         {
@@ -104,7 +102,7 @@ namespace Polaris.Terminal
             }
         }
         
-        public CommandParameter(Command parentCommand,System.Reflection.FieldInfo fieldInfo)
+        public CommandParameter(Command parentCommand, System.Reflection.FieldInfo fieldInfo)
         {
             genericType = typeof(TOption);
             command = parentCommand;
