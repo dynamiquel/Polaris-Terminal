@@ -42,15 +42,9 @@ namespace Polaris.Terminal
                     var commandParameterTypeGeneric = commandParameterType.MakeGenericType(field.FieldType);
                     var commandParameter = Activator.CreateInstance(commandParameterTypeGeneric, command, field);
                     var commandParameterAttribute = field.GetCustomAttribute<CommandParameterAttribute>();
+                    ((CommandParameter) commandParameter).DefaultValue = commandParameterAttribute.defaultValue;
                     command.Parameters.Add(commandParameterAttribute.description, (CommandParameter)commandParameter);
                     commandParameterAttribute.commandParameter = (CommandParameter)commandParameter;
-                    
-                    Terminal.Log(new LogMessage
-                    {
-                        Content = $"The command '{command.Name}' has {command.Parameters.Count} parameters.",
-                        LogSource = LogSource.Commands,
-                        LogType = LogType.System
-                    });
                 }
 
                 // Cache the commandId. Not sure if it's an expensive process but it seems like it.
@@ -96,7 +90,6 @@ namespace Polaris.Terminal
 
         public static LogMessage Execute(QueryInfo queryInfo)
         {
-            Terminal.Log(queryInfo.Parameters);
             if (!Commands.ContainsKey(queryInfo.Command))
                 return new LogMessage($"The command '{queryInfo.Command}' does not exist.");
 
@@ -115,12 +108,20 @@ namespace Polaris.Terminal
                 int i = 0;
                 foreach (var parameter in command.Parameters)
                 {
-                    Type parameterType = parameter.Value.GetType().GenericTypeArguments[0];
-                    MethodInfo method = typeof(Shell).GetMethod("ParamQuery");
-                    MethodInfo genericMethod = method.MakeGenericMethod(parameterType);
+                    object query;
+                    
+                    // If query is a '&', use the default value.
+                    if (queryInfo.Parameters[i] == "&")
+                        query = parameter.Value.DefaultValue;
+                    else
+                    {
+                        Type parameterType = parameter.Value.GetType().GenericTypeArguments[0];
+                        MethodInfo method = typeof(Shell).GetMethod("ParamQuery");
+                        MethodInfo genericMethod = method.MakeGenericMethod(parameterType);
 
-                    var query = genericMethod.Invoke(typeof(Shell), new object[] {queryInfo.Parameters[i]});
-
+                        query = genericMethod.Invoke(typeof(Shell), new object[] {queryInfo.Parameters[i]});
+                    }
+                    
                     if (query != null)
                         command.Parameters[parameter.Key].Value = query;
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Plugins.Polaris.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,13 +11,6 @@ namespace Polaris.Terminal.Unity
 {
     public class CommonTerminal : MonoBehaviour, ITerminalUI
     {
-        protected enum TerminalOverlaySize
-        {
-            Fullscreen,
-            Halfscreen,
-            Topbar
-        }
-        
         #region Fields -> Unity Serialisable
 
         [Header("Base Options")] 
@@ -44,33 +38,56 @@ namespace Polaris.Terminal.Unity
         [Tooltip("The maximum number of lines the Terminal should store." +
                  "\n\nThis will help reduce memory usage and slow down garbage collection.")]
         private int maxCharacters = 50000;
-        
+
         [Header("Overlay Options")]
-        [SerializeField] [Tooltip("Determines how much much of the screen the Terminal uses." +
-                                  "\nFullscreen: Terminal uses the entire screen." +
-                                  "\nHalfscreen: Terminal uses 1/3 of the screen (like most games)." +
-                                  "\nTerminal becomes a banner at the top of the screen. No input can be given.")]
-        private TerminalOverlaySize overlaySize;
-        
-        [Range(0, 1)] [SerializeField]
+        [SerializeField]
+        [Range(0, 1)]
+        [Tooltip("Determines how much much of the screen the Terminal uses." +
+                 "\nFullscreen: Terminal uses the entire screen." +
+                 "\nHalfscreen: Terminal uses 1/3 of the screen (like most games)." +
+                 "\nTerminal becomes a banner at the top of the screen. No input can be given.")]
+        float _overlayHeight = 1f;
+        public float OverlayHeight
+        {
+            get => _overlayHeight;
+            set
+            {
+                _overlayHeight = value;
+                SetHeight(OverlayHeight);
+            }
+        }
+
+        [SerializeField] [Range(0, 1)]
         private float _overlayOpacity = 1f;
         public float OverlayOpacity
         {
             get => _overlayOpacity;
-            set => SetOverlayOpacity(value);
+            set => SetOpacity(value);
         }
         
         [SerializeField] [Tooltip("Should the cursor be enabled when the Terminal is enabled?")]
         private bool enableCursor;
 
         [Header("Pinned Options")]
+        [SerializeField]
+        [Range(0, 1)]
+        [Tooltip("Determines how much much of the screen the Terminal uses when pinned." +
+                 "\nFullscreen: Terminal uses the entire screen." +
+                 "\nHalfscreen: Terminal uses 1/3 of the screen (like most games)." +
+                 "\nTerminal becomes a banner at the top of the screen. No input can be given.")]
+        float _pinnedHeight = .5f;
+        public float PinnedHeight
+        {
+            get => _pinnedHeight;
+            set
+            {
+                _pinnedHeight = value;
+                SetHeight(PinnedHeight);
+            }
+        }
+        
         [SerializeField] [Range(0, 1)] 
         private float pinnedOpacity = 1f;
-        [SerializeField] [Tooltip("Determines how much much of the screen the Terminal uses when pinned." +
-                                  "\nFullscreen: Terminal uses the entire screen." +
-                                  "\nHalfscreen: Terminal uses 1/3 of the screen (like most games)." +
-                                  "\nTerminal becomes a banner at the top of the screen. No input can be given.")]
-        private TerminalOverlaySize pinnedOverlaySize;
 
         [Header("User Input")] 
         [SerializeField] private string togglePin = "Toggle Terminal Pin";
@@ -172,13 +189,13 @@ namespace Polaris.Terminal.Unity
         #region Fields -> Private
 
         private GameObject thisGameObject;
+        private RectTransform windowRect;
         
         private AudioSource audioSource;
         private LogType currentlyPlayedLogType;
 
         private int inputHistoryIndex;
         private CursorLockMode previousCursorLockMode;
-        private float previousOverlayOpacity;
         
         #endregion
 
@@ -189,6 +206,8 @@ namespace Polaris.Terminal.Unity
         {
             // Caching purposes.
             thisGameObject = gameObject;
+
+            windowRect = window.GetComponent<RectTransform>();
             
             audioSource = thisGameObject.AddComponent<AudioSource>();
             InitialiseAudio();
@@ -214,6 +233,11 @@ namespace Polaris.Terminal.Unity
         {
             UserInput();
         }
+        
+        void OnGUI()
+        {
+            
+        }
 
         // Updates certain values if values in the Inspector have changed.
         protected void OnValidate()
@@ -222,10 +246,8 @@ namespace Polaris.Terminal.Unity
             if (thisGameObject == null)
                 return;
             
-            // If only the Inspector supported properties...
-            if (Math.Abs(_overlayOpacity - previousOverlayOpacity) > .01f)
-                SetOverlayOpacity(_overlayOpacity);
-            
+            SetupOverlay();
+
             // Update audio stuff.
             InitialiseAudio();
         }
@@ -417,7 +439,8 @@ namespace Polaris.Terminal.Unity
             if (Active)
             {
                 titleText.text = titleName;
-                SetOverlayOpacity(_overlayOpacity);
+                SetOpacity(_overlayOpacity);
+                SetHeight(OverlayHeight);
                 
                 // Focus on the input field.
                 EventSystem.current.SetSelectedGameObject(inputField.gameObject);
@@ -431,7 +454,8 @@ namespace Polaris.Terminal.Unity
                 if (Pinned)
                 {
                     titleText.text = $"{titleName} (Pinned)";
-                    SetOverlayOpacity(pinnedOpacity, true);
+                    SetOpacity(pinnedOpacity, true);
+                    SetHeight(PinnedHeight);
                 }
 
                 if (enableCursor)
@@ -439,7 +463,7 @@ namespace Polaris.Terminal.Unity
             }
         }
         
-        private void SetOverlayOpacity(float opacity, bool pinned = false)
+        private void SetOpacity(float opacity, bool pinned = false)
         {
             var notAssignedErrorMsg =
                 $"{thisGameObject.name}:{{0}} is not assigned. Opacity will not change.";
@@ -449,8 +473,6 @@ namespace Polaris.Terminal.Unity
             else
                 _overlayOpacity = opacity;
             
-            previousOverlayOpacity = _overlayOpacity;
-
             Color colour;
             
             // Set Title Bar background opacity.
@@ -482,6 +504,11 @@ namespace Polaris.Terminal.Unity
                 colour.a = opacity;
                 inputSection.color = colour;
             }
+        }
+
+        private void SetHeight(float heightPerc)
+        {
+            windowRect.SetHeight(2160 * heightPerc);
         }
 
         private void PopulateInputFieldWithHistory()
@@ -583,7 +610,7 @@ namespace Polaris.Terminal.Unity
 
         private void HandleTogglePinButton()
             => Pinned = !Pinned;
-        
+
         #endregion
     }
 }

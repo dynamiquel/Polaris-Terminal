@@ -44,11 +44,13 @@ namespace Polaris.Terminal
     internal sealed class CommandParameterAttribute : System.Attribute
     {
         public readonly string description;
+        public readonly object defaultValue;
         public CommandParameter commandParameter;
         
-        public CommandParameterAttribute(string description)
+        public CommandParameterAttribute(string description, object defaultValue = null)
         {
             this.description = description;
+            this.defaultValue = defaultValue;
         }
     }
     
@@ -56,17 +58,25 @@ namespace Polaris.Terminal
     public abstract class CommandParameter
     {
         private object value;
+        private object defaultValue;
         public Type genericType;
         public Command command; //Invokable command that uses this as a parameter
         public System.Reflection.FieldInfo fieldInfo; //field name of command linked to this parameter
 
         public object Value
         {
-            get { return value; }
-            set {
+            get => value;
+            set 
+            {
                 this.value = value;
                 fieldInfo.SetValue(command, value);
             }
+        }
+
+        public object DefaultValue
+        {
+            get => defaultValue;
+            set => defaultValue = value;
         }
     }
 
@@ -74,15 +84,26 @@ namespace Polaris.Terminal
     {
         public new TOption Value
         {
-            get {
+            get
+            {
                 if (base.Value == null)
-                {
                     return default;
-                }
-                return (TOption)base.Value;
-
+                
+                return (TOption) base.Value;
             }
         }
+
+        public new TOption DefaultValue
+        {
+            get
+            {
+                if (base.DefaultValue == null)
+                    return default;
+
+                return (TOption) base.DefaultValue;
+            }
+        }
+        
         public CommandParameter(Command parentCommand,System.Reflection.FieldInfo fieldInfo)
         {
             genericType = typeof(TOption);
