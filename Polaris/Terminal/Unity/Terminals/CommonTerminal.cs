@@ -1,4 +1,26 @@
-using System;
+//  This file is part of Polaris-Terminal - A developer console for Unity.
+//  https://github.com/dynamiquel/Polaris-Options
+//  Copyright (c) 2020 dynamiquel
+
+//  MIT License
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+
+//  The above copyright notice and this permission notice shall be included in all
+//  copies or substantial portions of the Software.
+
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//  SOFTWARE.
+
 using System.Collections.Generic;
 using System.Text;
 using Plugins.Polaris.UI;
@@ -234,9 +256,13 @@ namespace Polaris.Terminal.Unity
             UserInput();
         }
         
-        void OnGUI()
+        private void OnGUI()
         {
-            
+        }
+
+        private void OnDestroy()
+        {
+            Terminal.OnLog -= Write;
         }
 
         // Updates certain values if values in the Inspector have changed.
@@ -385,7 +411,10 @@ namespace Polaris.Terminal.Unity
             if (inputField == null)
                 Terminal.LogWarning(LogSource.UI, string.Format(notAssignedErrorMsg, nameof(inputField)));
             else
+            {
                 inputField.onSubmit.AddListener(HandleInputFieldParseInput);
+                inputField.onValueChanged.AddListener(HandleInputFieldTextChanged);
+            }
 
             if (closeButton == null)
                 Terminal.LogWarning(LogSource.UI, string.Format(notAssignedErrorMsg, nameof(closeButton)));
@@ -421,6 +450,7 @@ namespace Polaris.Terminal.Unity
             // If Terminal is not Active nor Pinned, disable everything.
             
             window.SetActive(Active || Pinned);
+            predictedCommandsTransform.gameObject.SetActive(Active);
 
             // Setup interactions.
             var imageComponents = GetComponentsInChildren<Image>();
@@ -523,12 +553,7 @@ namespace Polaris.Terminal.Unity
             else
                 inputField.text = Terminal.InputHistory.Peek(inputHistoryIndex);
         }
-        
-        private List<Command> GetPotentialCommands(string query)
-        {
-            return null;
-        }
-        
+
         /// <summary>
         /// Plays a certain notification sound, depending on the LogType.
         /// </summary>
@@ -604,6 +629,40 @@ namespace Polaris.Terminal.Unity
 
         private void HandleInputFieldParseInput(string input)
             => ParseInput();
+
+        [SerializeField] GameObject predictedCommandPrefab;
+        [SerializeField] Transform predictedCommandsTransform;
+        private void HandleInputFieldTextChanged(string input)
+        {
+            // Maybe a bit overkill but it's an existing implementation that does the job.
+            // Splits the command and parameters from the input. We don't actually care about the parameter, just the
+            // number of parameters.
+            var queryInfo = QueryInfo.FromString(input);
+            var queriedCommands = Shell.GetCommands(queryInfo.Command);
+            
+            // Gets all the commands that have at least the same number of parameters as the input.
+            var potentialCommands = new List<Command>();
+            foreach (var potentialCommand in queriedCommands)
+                if (potentialCommand.Parameters.Count >= queryInfo.Parameters.Count)
+                    potentialCommands.Add(potentialCommand);
+            
+            // Clear the predicted commands.
+            foreach (Transform item in predictedCommandsTransform)
+                Destroy(item.gameObject);
+
+            // Create the predicted commands.
+            foreach (var item in potentialCommands)
+            {
+                GameObject tempGO = Instantiate(predictedCommandPrefab, predictedCommandsTransform);
+                
+                var sb = new StringBuilder();
+                sb.Append(item.Id);
+                foreach (var parameter in item.Parameters)
+                    sb.Append($" ({parameter.Key})");
+                
+                tempGO.GetComponentInChildren<TextMeshProUGUI>().text = sb.ToString();
+            }
+        }
         
         private void HandleCloseButton()
             => Active = false;
