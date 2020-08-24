@@ -28,5 +28,14 @@ namespace Polaris.Terminal.Unity
     public class DebugTerminal : CommonTerminal
     {
         private List<LogMessage> logs;
+        public override void Write(LogMessage logMessage)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override void Clear()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

@@ -21,9 +21,6 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Plugins.Polaris.UI;
 using TMPro;
 using UnityEngine;
@@ -32,35 +29,35 @@ using UnityEngine.UI;
 
 namespace Polaris.Terminal.Unity
 {
-    public class CommonTerminal : MonoBehaviour, ITerminalUI
+    public abstract class CommonTerminal : MonoBehaviour
     {
         #region Fields -> Unity Serialisable
 
         [Header("Base Options")] 
         [SerializeField] private string titleName = "Terminal";
         [SerializeField] [Tooltip("Should the timestamp of the message be displayed?")]
-        private bool includeTimestamps = true;
+        protected bool includeTimestamps = true;
         
         [SerializeField] [Tooltip("Should the Log Type of the message be displayed?")]
-        private bool includeLogType;
+        protected bool includeLogType;
         
         [SerializeField] [Tooltip("Should the Log Source of the message be displayed?")]
-        private bool includeLogSource;
+        protected bool includeLogSource;
         
         [SerializeField] private bool dontDestroyOnSceneChange = true;
         [SerializeField] private bool displayPredictions = true;
         
         [SerializeField] [Tooltip("Which Log Types should be outputted to the Terminal?" +
                                   "\n\nIgnore the Everything and Im Just Here Coz Unity Dumb options.")]
-        private LogType logTypesToOutput = LogType.All;
+        protected LogType logTypesToOutput = LogType.All;
 
         [SerializeField] [Tooltip("Which Log Sources should be outputted to the Terminal?")]
-        LogSource logSourcesToOutput;
+        protected LogSource logSourcesToOutput;
         
         [SerializeField] [Min(10)]
         [Tooltip("The maximum number of lines the Terminal should store." +
                  "\n\nThis will help reduce memory usage and slow down garbage collection.")]
-        private int maxCharacters = 50000;
+        protected int maxCharacters = 50000;
 
         [Header("Overlay Options")]
         [SerializeField]
@@ -122,9 +119,9 @@ namespace Polaris.Terminal.Unity
         [SerializeField] [Range(0f, 1f)]
         private float volume = 1f;
         [SerializeField] [Tooltip("Should notification sounds be played when the Terminal is closed?")]
-        private bool playSoundsWhenClosed = true;
+        protected bool playSoundsWhenClosed = true;
         [SerializeField] [Tooltip("Should notification sounds be played when the Terminal is pinned?")]
-        private bool playSoundsWhenPinned = true;
+        protected bool playSoundsWhenPinned = true;
         [SerializeField] [Tooltip("Should only one sound be played at any given time?\n\nIf disabled, overlapping may occur.")] 
         private bool oneSoundAtATime = true;
         [SerializeField] [Tooltip("Which Log Types should play a notification sound when a message is received?")]
@@ -144,7 +141,7 @@ namespace Polaris.Terminal.Unity
         [Header("Components - Don't edit unless you know what you're doing!")]
         [SerializeField] private GameObject window;
         [SerializeField] private TMP_InputField inputField;
-        [SerializeField] private TextMeshProUGUI outputText;
+        [SerializeField] protected TextMeshProUGUI outputText;
         [SerializeField] private Button inputButton;
 
         [Header("Title Bar Components")] 
@@ -262,10 +259,6 @@ namespace Polaris.Terminal.Unity
         {
             UserInput();
         }
-        
-        private void OnGUI()
-        {
-        }
 
         private void OnDestroy()
         {
@@ -290,58 +283,9 @@ namespace Polaris.Terminal.Unity
 
         #region Methods -> Public
 
-        public void Write(LogMessage logMessage)
-        {
-            // Ignores the message if this component is disabled or paused.
-            if (!enabled || Paused)
-                return;
-            
-            // Ignores the message if it has a log type or source that the terminal does not accept.
-            if ((logTypesToOutput & logMessage.LogType) != logMessage.LogType || 
-                (logSourcesToOutput & logMessage.LogSource) != logMessage.LogSource)
-                return;
-            
-            if (outputText.text.Length > maxCharacters)
-                outputText.text = outputText.text.Remove(0, outputText.text.Length - maxCharacters);
-                
-            var formattedMessage = new StringBuilder();
+        public abstract void Write(LogMessage logMessage);
 
-            // Adds colour.
-            formattedMessage.Append($"\n<color=#{logMessage.Colour.HexRgb}>");
-
-            // Adds timestamp.
-            if (includeTimestamps)
-                formattedMessage.Append($"[{logMessage.Timestamp:HH:mm:ss}] ");
-
-            // Starts the bold text.
-            formattedMessage.Append("<b>");
-            
-            if (logMessage.LogType == LogType.User)
-                formattedMessage.Append("> ");
-            else
-            {
-                // Adds the log source.
-                if (includeLogSource)
-                    formattedMessage.Append($"[{logMessage.LogSource.ToString()}] ");
-                
-                // Adds the log type.
-                if (includeLogType)
-                    formattedMessage.Append($"[{logMessage.LogType.ToString()}] ");
-            }
-
-            // Ends the bold text, adds the content, and ends the colour.
-            formattedMessage.Append($"</b>{logMessage.Content}</color>");
-            
-            outputText.text += formattedMessage;
-            
-            if (Active || Pinned && playSoundsWhenPinned || !Pinned && playSoundsWhenClosed)
-                PlaySound(logMessage.LogType);
-        }
-
-        public void Clear()
-        {
-            outputText.text = string.Empty;
-        }
+        public abstract void Clear();
 
         public void ParseInput()
         {
@@ -587,7 +531,7 @@ namespace Polaris.Terminal.Unity
         /// Plays a certain notification sound, depending on the LogType.
         /// </summary>
         /// <param name="logType"></param>
-        private void PlaySound(LogType logType)
+        protected void PlaySound(LogType logType)
         {
             // Ignore if sounds were disabled for the given LogType.
             if ((playSoundForLogTypes & logType) != logType) 

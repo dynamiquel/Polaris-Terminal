@@ -21,10 +21,63 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
+using System.Text;
+
 namespace Polaris.Terminal.Unity
 {
     public class LogTerminal : CommonTerminal
     {
+        public override void Write(LogMessage logMessage)
+        {
+            // Ignores the message if this component is disabled or paused.
+            if (!enabled || Paused)
+                return;
+            
+            // Ignores the message if it has a log type or source that the terminal does not accept.
+            if ((logTypesToOutput & logMessage.LogType) != logMessage.LogType || 
+                (logSourcesToOutput & logMessage.LogSource) != logMessage.LogSource)
+                return;
+            
+            if (outputText.text.Length > maxCharacters)
+                outputText.text = outputText.text.Remove(0, outputText.text.Length - maxCharacters);
+                
+            var formattedMessage = new StringBuilder();
+
+            // Adds colour.
+            formattedMessage.Append($"\n<color=#{logMessage.Colour.HexRgb}>");
+
+            // Adds timestamp.
+            if (includeTimestamps)
+                formattedMessage.Append($"[{logMessage.Timestamp:HH:mm:ss}] ");
+
+            // Starts the bold text.
+            formattedMessage.Append("<b>");
+            
+            if (logMessage.LogType == LogType.User)
+                formattedMessage.Append("> ");
+            else
+            {
+                // Adds the log source.
+                if (includeLogSource)
+                    formattedMessage.Append($"[{logMessage.LogSource.ToString()}] ");
+                
+                // Adds the log type.
+                if (includeLogType)
+                    formattedMessage.Append($"[{logMessage.LogType.ToString()}] ");
+            }
+
+            // Ends the bold text, adds the content, and ends the colour.
+            formattedMessage.Append($"</b>{logMessage.Content}</color>");
+            
+            outputText.text += formattedMessage;
+            
+            if (Active || Pinned && playSoundsWhenPinned || !Pinned && playSoundsWhenClosed)
+                PlaySound(logMessage.LogType);
+        }
         
+        public override void Clear()
+        {
+            outputText.text = string.Empty;
+        }
     }
 }
