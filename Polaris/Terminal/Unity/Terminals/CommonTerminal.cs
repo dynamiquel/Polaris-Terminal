@@ -21,6 +21,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Plugins.Polaris.UI;
@@ -162,6 +163,8 @@ namespace Polaris.Terminal.Unity
         [SerializeField] private Image outputSection;
         [SerializeField] private Image inputSection;
         
+        [SerializeField] private Transform predictedCommandsTransform;
+        
         #endregion
 
 
@@ -218,6 +221,10 @@ namespace Polaris.Terminal.Unity
 
         private int inputHistoryIndex;
         private CursorLockMode previousCursorLockMode;
+
+        private CommandPrediction commandPrediction; 
+        private bool commandPredictionActive;
+        private int commandPredictionIndex;
         
         #endregion
 
@@ -230,7 +237,7 @@ namespace Polaris.Terminal.Unity
             thisGameObject = gameObject;
 
             windowRect = window.GetComponent<RectTransform>();
-            
+            commandPrediction = predictedCommandsTransform.GetComponent<CommandPrediction>();
             audioSource = thisGameObject.AddComponent<AudioSource>();
             InitialiseAudio();
 
@@ -370,12 +377,32 @@ namespace Polaris.Terminal.Unity
 
                 if (!Pinned)
                 {
-                    if (Input.GetKeyDown(KeyCode.UpArrow))
+                    if (commandPrediction.Active)
+                    {
+                        if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.UpArrow))
+                        {
+                            commandPrediction.Index--;
+                            // Updates the caret's position to the end of the text.
+                            inputField.caretPosition = int.MaxValue;
+                        }
+                        else if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.DownArrow))
+                        {
+                            commandPrediction.Index++;
+                            inputField.caretPosition = int.MaxValue;
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Tab))
+                        {
+                            inputField.text = commandPrediction.SelectedPrediction;
+                            inputField.caretPosition = int.MaxValue;
+                        }
+                    }
+                    
+                    if (!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.UpArrow))
                     {
                         inputHistoryIndex++;
                         PopulateInputFieldWithHistory();
                     }
-                    else if (Input.GetKeyDown(KeyCode.DownArrow))
+                    else if (!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.DownArrow))
                     {
                         inputHistoryIndex--;
                         PopulateInputFieldWithHistory();
@@ -552,6 +579,8 @@ namespace Polaris.Terminal.Unity
                 inputField.text = string.Empty;
             else
                 inputField.text = Terminal.InputHistory.Peek(inputHistoryIndex);
+            
+            inputField.caretPosition = int.MaxValue;
         }
 
         /// <summary>
@@ -629,39 +658,10 @@ namespace Polaris.Terminal.Unity
 
         private void HandleInputFieldParseInput(string input)
             => ParseInput();
-
-        [SerializeField] GameObject predictedCommandPrefab;
-        [SerializeField] Transform predictedCommandsTransform;
+        
         private void HandleInputFieldTextChanged(string input)
         {
-            // Maybe a bit overkill but it's an existing implementation that does the job.
-            // Splits the command and parameters from the input. We don't actually care about the parameter, just the
-            // number of parameters.
-            var queryInfo = QueryInfo.FromString(input);
-            var queriedCommands = Shell.GetCommands(queryInfo.Command);
-            
-            // Gets all the commands that have at least the same number of parameters as the input.
-            var potentialCommands = new List<Command>();
-            foreach (var potentialCommand in queriedCommands)
-                if (potentialCommand.Parameters.Count >= queryInfo.Parameters.Count)
-                    potentialCommands.Add(potentialCommand);
-            
-            // Clear the predicted commands.
-            foreach (Transform item in predictedCommandsTransform)
-                Destroy(item.gameObject);
-
-            // Create the predicted commands.
-            foreach (var item in potentialCommands)
-            {
-                GameObject tempGO = Instantiate(predictedCommandPrefab, predictedCommandsTransform);
-                
-                var sb = new StringBuilder();
-                sb.Append(item.Id);
-                foreach (var parameter in item.Parameters)
-                    sb.Append($" ({parameter.Key})");
-                
-                tempGO.GetComponentInChildren<TextMeshProUGUI>().text = sb.ToString();
-            }
+            commandPrediction.Query(input);
         }
         
         private void HandleCloseButton()
