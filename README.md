@@ -9,7 +9,9 @@ For some reason, Unity doesn't come with a built-in developer console that allow
 - Commands can be executed through scripts
 - Permission Levels for Commands - i.e. Normal, Cheats, Developer
 - Command Parameters
+- Default values for Command Parameters
 - Persistent input history
+- Input prediction and hints (only really works with 16:9 aspect ratios)
 
 ### Logging
 - Log messages with timestamps
@@ -28,7 +30,6 @@ For some reason, Unity doesn't come with a built-in developer console that allow
 
 ### Desired features
 - Debug mode (filtering, similar to Unity's Console), recommended to use for debugging.
-- Input prediction and hints.
 
 ---
 
@@ -36,10 +37,17 @@ For some reason, Unity doesn't come with a built-in developer console that allow
 Terminal is split into two main parts, the Terminal Controller (just called Terminal in the code because who can be bothered writing that out everytime) and the Shell.
 
 ### Shell
-The Shell is where commands are sent and processed. Developers don't need to know too much about the Shell as you shouldn't need to interact with it, unless you want to make changes to how commands are processed.
+The Shell is where commands are stored, sent and processed. Developers don't need to know too much about the Shell as you shouldn't need to interact with it, unless you want to make changes to how commands are processed. 
+
+The main method in Shell is `Shell.Execute(QueryInfo)`. This method takes in a **QueryInfo**, which is essentially a Command and CommandParameters, and attempts to find and execute a Command with the matching information.
 
 ### Terminal Controller
 The Terminal Controller is what you'll be interacting with the most. It's basically responsible for receiving log messages and redirecting them to where they need to go, such as GUIs and text files. The Terminal Controller has an event `Terminal.OnLog(LogMessage)` which is invoked everytime a message has been recieved.
+
+The Termimal Controller also has its own **Execute** method, `Execute(string)`. This method creates a QueryInfo out of the string, passes it to the Shell and logs any return message from the Command.
+
+### Front-end
+The back-end is the important part of Terminal. The front-end solutions provided by Terminal should be considered as extras and is not required to use Terminal. You can very easily create your own UI which uses Terminal as its backend.
 
 ---
 
@@ -66,6 +74,8 @@ CommonTerminal has many options that the developers and users can use. This incl
 - Pin size
 - Pin opacity
 - Clearing the current log messages
+
+These options can currently only be edited through the Inspector (for default values) or through the *Terminal/Settings.yaml* file.
 
 #### LogTerminal
 The LogTerminal is built on top of CommonTerminal and is a traditional type of developer console, where it simply outputs text; nothing else. The advantage of this approach is that is uses very little memory compared to a **filtered** approach, like the one built in to Unity. This is recommended for release builds.
@@ -171,6 +181,22 @@ public class HelloWorld : Command
 
 Then all we do to execute it is `Terminal.Execute("hello Mars")`, which will log **Hello, Mars!**
 
+You can also set a default value for each Command Parameter.
+```cs
+[Command("hello")]
+public class HelloWorld : Command
+{
+    [CommandParameter("this is just a description")] 
+    public string value = "Saturn";
+    
+    public override LogMessage Execute()
+    {
+        return new LogMessage($"Hello, {value}!);
+    }
+}
+```
+Now if no parameter was given, the value "Saturn" will be used, which will log **Hello, Saturn!**. Note: Currently, Terminal doesn't use default values when no parameter is given. Instead if you wish to use the default value, the `&` string must be used. E.g. `Terminal.Execute("hello &")` will log **Hello, Saturn!**.
+
 ---
 
 ## Options
@@ -198,10 +224,9 @@ Terminal is very performant. Even with messages being sent every single frame to
 
 However, this is not the case when `LogTerminal.outputText` (a TextMeshProUGUI component on the included LogTerminal) is being rendered. The CPU usage becomes ~13% and memory usage becomes 300MB. If this performance cost is too much for you but you still wish to use other parts of Terminal, you can create your own GUI for Terminal.
 
-## Prerequisites
-<ul>
-  <li>Unity 2018.4 or later</li>
-</ul>
+## Dependencies
+- Unity 2018.4 or later
+- [Polaris IO](https://github.com/dynamiquel/Polaris-IO) 2009 or later
 
 ## Adding to your Unity project
 <ol>
@@ -210,4 +235,4 @@ However, this is not the case when `LogTerminal.outputText` (a TextMeshProUGUI c
 </ol>
   
 ### Credits
-Influenced by <a href="https://github.com/mustafayaya/Reactor-Developer-Console">Reactor Developer Console</a>. Credits are given where due.
+The Shell is influenced by <a href="https://github.com/mustafayaya/Reactor-Developer-Console">Reactor Developer Console</a>. Credits are given where due.
