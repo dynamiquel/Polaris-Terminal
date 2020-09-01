@@ -299,7 +299,12 @@ namespace Polaris.Terminal
         #endregion
 
         // UNITY-SPECIFIC
-        // Converts Unity's built in log messages to Terminal log messages.
+        /// <summary>
+        /// Converts Unity's built in log messages to Terminal log messages.
+        /// </summary>
+        /// <param name="logMessage"></param>
+        /// <param name="stackTrace"></param>
+        /// <param name="type"></param>
         private static void HandleUnityLog(string logMessage, string stackTrace, UnityEngine.LogType type)
         {
             switch (type)
@@ -325,7 +330,10 @@ namespace Polaris.Terminal
             }
         }
 
-        // Appends the input to the end of the history stack and file so it can be retrieved later.
+        /// <summary>
+        /// Appends the input to the end of the history stack and file so it can be retrieved later.
+        /// </summary>
+        /// <param name="input"></param>
         private static void WriteHistory(string input)
         {
             if (InputHistory == null)
@@ -339,7 +347,9 @@ namespace Polaris.Terminal
             IO.AppendToHistory(input);
         }
 
-        // Initialises the history stack and if a history file exists, pushes its data to it.
+        /// <summary>
+        /// Initialises the history stack and if a history file exists, pushes its data to it.
+        /// </summary>
         private static void InitialiseHistory()
         {
             var savedHistory = IO.GetHistory();

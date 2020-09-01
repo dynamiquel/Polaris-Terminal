@@ -45,8 +45,18 @@ namespace Polaris.Terminal
 
             CompressOldLogFiles();
         }
+
+        /// <summary>
+        /// Tells Polaris.Terminal.IO to clear all the old log files.
+        /// </summary>
+        public static void ClearLogs()
+        {
+            IO.ClearLogs();
+        }
         
-        // Tells Polaris.Terminal.IO to create a new log file.
+        /// <summary>
+        /// Tells Polaris.Terminal.IO to create a new log file.
+        /// </summary>
         private static void CreateLogFile()
         {
             var time = DateTime.UtcNow.ToString("yyyy-MM-dd HH-mm-ss");
@@ -74,7 +84,9 @@ namespace Polaris.Terminal
             IO.AppendToLog(formattedLogMessage.ToString(), logFilePath);
         }
 
-        // Tells Polaris.Terminal.IO to compress the old log files.
+        /// <summary>
+        /// Tells Polaris.Terminal.IO to compress the old log files.
+        /// </summary>
         private static void CompressOldLogFiles()
         {
             IO.CompressOldLogs(logFilePath);

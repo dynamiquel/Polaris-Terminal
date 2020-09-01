@@ -21,7 +21,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
+using System;
 using Plugins.Polaris.UI;
+using Polaris.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -253,6 +255,7 @@ namespace Polaris.Terminal.Unity
         protected void Start()
         {
             Active = false;
+            LoadSettings();
         }
 
         protected void Update()
@@ -263,6 +266,7 @@ namespace Polaris.Terminal.Unity
         private void OnDestroy()
         {
             Terminal.OnLog -= Write;
+            SaveSettings();
         }
 
         // Updates certain values if values in the Inspector have changed.
@@ -277,7 +281,7 @@ namespace Polaris.Terminal.Unity
             // Update audio stuff.
             InitialiseAudio();
         }
-        
+
         #endregion
 
 
@@ -614,6 +618,83 @@ namespace Polaris.Terminal.Unity
         private void HandleTogglePinButton()
             => Pinned = !Pinned;
 
+        private void LoadSettings()
+        {
+            var settings = IO.GetCommonTerminalSettings();
+            if (settings == null)
+                return;
+            
+            titleName = settings.TitleName;
+            includeTimestamps = settings.DisplayTimestamps;
+            includeLogType = settings.DisplayLogType;
+            includeLogSource = settings.DisplayLogSource;
+            displayPredictions = settings.DisplayPredictions;
+            logTypesToOutput = settings.LogTypesToOutput;
+            logSourcesToOutput = settings.LogSourcesToOutput;
+            enableCursor = settings.EnableCursor;
+            maxCharacters = settings.MaxCharacters;
+            _overlayHeight = settings.OverlayHeight;
+            _overlayOpacity = settings.OverlayOpacity;
+            _pinnedHeight = settings.PinnedHeight;
+            pinnedOpacity = settings.PinnedOpacity;
+            volume = settings.Volume;
+            playSoundsWhenPinned = settings.PlaySoundsWhenPinned;
+            playSoundsWhenClosed = settings.PlaySoundsWhenClosed;
+            playSoundForLogTypes = settings.LogTypesToPlaySound;
+        }
+
+        private void SaveSettings()
+        {
+            var settings = new CommonTerminalSettings
+            {
+                TitleName = titleName,
+                DisplayTimestamps = includeTimestamps,
+                DisplayLogType = includeLogType,
+                DisplayLogSource = includeLogSource,
+                DisplayPredictions = displayPredictions,
+                LogTypesToOutput = logTypesToOutput,
+                LogSourcesToOutput = logSourcesToOutput,
+                EnableCursor = enableCursor,
+                MaxCharacters = maxCharacters,
+                OverlayHeight = _overlayHeight,
+                OverlayOpacity = _overlayOpacity,
+                PinnedHeight = _pinnedHeight,
+                PinnedOpacity = pinnedOpacity,
+                Volume = volume,
+                PlaySoundsWhenPinned = playSoundsWhenPinned,
+                PlaySoundsWhenClosed = playSoundsWhenClosed,
+                LogTypesToPlaySound = playSoundForLogTypes
+            };
+
+            IO.SaveCommonTerminalSettings(settings);
+        }
+
         #endregion
+    }
+
+    public class CommonTerminalSettings
+    {
+        public string TitleName { get; set; }
+        public bool DisplayTimestamps { get; set; }
+        public bool DisplayLogType { get; set; }
+        public bool DisplayLogSource { get; set; }
+        
+        public bool DisplayPredictions { get; set; }
+        
+        public LogType LogTypesToOutput { get; set; }
+        public LogSource LogSourcesToOutput { get; set; }
+        
+        public bool EnableCursor { get; set; }
+        public int MaxCharacters { get; set; }
+        
+        public float OverlayHeight { get; set; }
+        public float OverlayOpacity { get; set; }
+        public float PinnedHeight { get; set; }
+        public float PinnedOpacity { get; set; }
+        
+        public float Volume { get; set; }
+        public bool PlaySoundsWhenPinned { get; set; }
+        public bool PlaySoundsWhenClosed { get; set; }
+        public LogType LogTypesToPlaySound { get; set; }
     }
 }

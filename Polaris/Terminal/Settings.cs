@@ -171,7 +171,7 @@ namespace Polaris.Terminal
             }
         }
 
-        private string _directory = Path.Combine(Application.persistentDataPath, "Logs");
+        private string _directory = Path.Combine(Application.persistentDataPath, "Terminal");
         /// <summary>
         /// The directory where Terminal-related files will be saved and loaded.
         /// </summary>

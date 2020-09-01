@@ -110,5 +110,25 @@ namespace Polaris.Terminal
                 return new LogMessage($"The command '{commandId}' is not valid.");
             }
         }
+
+        [Command("clear_logs")]
+        public class ClearLogs : Command
+        {
+            public override string Name { get; protected set; } = "Clear Logs";
+            public override string Category { get; protected set; } = "Misc";
+            public override string Description { get; protected set; } = "Deletes all archived log files.";
+
+            public override LogMessage Execute()
+            {
+                FileLogger.ClearLogs();
+
+                return new LogMessage
+                {
+                    Content = "Cleared old log files.",
+                    LogType = LogType.System,
+                    LogSource = LogSource.Commands
+                };
+            }
+        }
     }
 }

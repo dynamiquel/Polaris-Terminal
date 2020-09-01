@@ -40,6 +40,9 @@ namespace Polaris.Terminal
     {
         public static Dictionary<string, Command> Commands {get; private set;} = new Dictionary<string, Command>();
 
+        /// <summary>
+        /// Finds all the commands marked with the [Command] attribute and adds them to a dictionary.
+        /// </summary>
         [RuntimeInitializeOnLoadMethod]
         private static void RegisterCommands()
         {
@@ -107,6 +110,11 @@ namespace Polaris.Terminal
             }
         }
 
+        /// <summary>
+        /// Returns all the commands that matches the given query.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public static IEnumerable<Command> GetCommands(string query)
         {
             var potentialCommands = new List<Command>();
@@ -122,6 +130,11 @@ namespace Polaris.Terminal
             return potentialCommands.OrderBy(x => x.Id);
         }
 
+        /// <summary>
+        /// Uses the given query info to determine which command to execute, and which parameters to use.
+        /// </summary>
+        /// <param name="queryInfo"></param>
+        /// <returns></returns>
         public static LogMessage Execute(QueryInfo queryInfo)
         {
             if (!Commands.ContainsKey(queryInfo.Command))

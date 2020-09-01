@@ -23,7 +23,8 @@
 
 using System;
 using System.IO;
-using System.IO.Compression;
+using Polaris.IO.Compression;
+using Polaris.Terminal.Unity;
 
 namespace Polaris.Terminal
 {
@@ -34,8 +35,12 @@ namespace Polaris.Terminal
     public static class IO
     {
         // Doesn't update when Terminal.Settings.Directory changes. Changes will be applied after game restart.
-        private static readonly string HistoryPath = Path.Combine(Terminal.Settings.Directory, "history");
+        private static readonly string HistoryPath = Path.Combine(Terminal.Settings.Directory, "History");
 
+        /// <summary>
+        /// Returns the user's input history as a TStack.
+        /// </summary>
+        /// <returns></returns>
         public static TStack<string> GetHistory()
         {
             var path = HistoryPath;
@@ -57,42 +62,49 @@ namespace Polaris.Terminal
             return null;
         }
 
+        /// <summary>
+        /// Pushes given input to the history file so it can be persistent.
+        /// </summary>
+        /// <param name="line"></param>
         public static void AppendToHistory(string line)
         {
-            // Pushes given input to the history file so it can be persistent.
-            var path = HistoryPath;
-
-            if (!File.Exists(path))
+            // If file is more than a MB, empty it.
+            // If the file doesn't exist, create it.
+            if (!File.Exists(HistoryPath) || new FileInfo(HistoryPath).Length > Terminal.Settings.HistoryMaxSize)
             {
-                Directory.CreateDirectory(Terminal.Settings.Directory);
-                using (StreamWriter sw = File.CreateText(path))
-                { }
+                Polaris.IO.Directory.Create(Terminal.Settings.Directory);
+                Polaris.IO.Text.Write(HistoryPath, string.Empty);
             }
 
             // If file is more than a MB, empty it.
-            if (new FileInfo(path).Length > Terminal.Settings.HistoryMaxSize)
-                using (StreamWriter sw = File.CreateText(path))
-                { }
 
-            using (StreamWriter sw = File.AppendText(path))
+            using (StreamWriter sw = File.AppendText(HistoryPath))
                 sw.WriteLine(line);
         }
 
+        /// <summary>
+        /// Creates a log file and returns its file location.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         public static string CreateLog(string fileName)
         {
-            // Implement Polaris paths later
-            var path = Path.Combine(Terminal.Settings.Directory, $"{fileName}.log");
+            var path = Path.Combine(Terminal.Settings.Directory, "Logs", $"{fileName}.log");
             
             if (!File.Exists(path))
             {
-                Directory.CreateDirectory(Terminal.Settings.Directory);
-                using (StreamWriter sw = File.CreateText(path))
-                    sw.WriteLine("Polaris - Log Time! [Polaris Terminal 2.0 - Preview 1]");
+                Polaris.IO.Directory.Create(Path.Combine(Terminal.Settings.Directory, "Logs"));
+                Polaris.IO.Text.Write(path, "Polaris - Log Time! [Polaris Terminal 2.0 - Preview 1]");
             }
 
             return path;
         }
 
+        /// <summary>
+        /// Appends the line to the log file found in the specified path.
+        /// </summary>
+        /// <param name="line"></param>
+        /// <param name="logFilePath"></param>
         public static void AppendToLog(string line, string logFilePath)
         {
             using (StreamWriter sw = File.AppendText(logFilePath))
@@ -102,7 +114,7 @@ namespace Polaris.Terminal
         // Compresses all the old log files using .NET's GZip compression.
         public static void CompressOldLogs(string currentLogFile)
         {
-            DirectoryInfo logDirectory = new DirectoryInfo(Terminal.Settings.Directory);
+            DirectoryInfo logDirectory = new DirectoryInfo(Path.Combine(Terminal.Settings.Directory, "Logs"));
                 
             foreach (var fileToCompress in logDirectory.GetFiles("*.log"))
             {
@@ -115,16 +127,9 @@ namespace Polaris.Terminal
                 {
                     using (FileStream fileStream = fileToCompress.OpenRead())
                     {
-                        using (FileStream compressedFileStream = File.Create(fileToCompress.FullName + ".gz"))
-                        {
-                            using (GZipStream compressionStream =
-                                new GZipStream(compressedFileStream, CompressionMode.Compress))
-                            {
-                                fileStream.CopyTo(compressionStream);
-                            }
-                        }
+                        Polaris.IO.Text.Write($"{fileToCompress.FullName}.gz", fileStream, CompressionType.Lzma);
                     }
-                
+                    
                     fileToCompress.Delete();
                 }
                 catch (Exception e)
@@ -134,14 +139,49 @@ namespace Polaris.Terminal
             }
         }
 
-        public static void SaveCommonTerminalSettings()
+        /// <summary>
+        /// Attempts to delete all archived log files.
+        /// </summary>
+        public static void ClearLogs()
         {
-            
+            DirectoryInfo logDirectory = new DirectoryInfo(Path.Combine(Terminal.Settings.Directory, "Logs"));
+
+            foreach (var logFile in logDirectory.GetFiles("*.gz"))
+            {
+                try
+                {
+                    logFile.Delete();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
 
-        public static object GetCommonTerminalSettings()
+        public static void SaveCommonTerminalSettings(CommonTerminalSettings settings)
         {
-            return null;
+            try
+            {
+                Polaris.IO.Yaml.Write(System.IO.Path.Combine(Terminal.Settings.Directory, "Settings"), settings);
+            }
+            catch (Exception e)
+            {
+                Terminal.LogWarning($"Could not save Terminal settings.\nReason: {e}.");
+            }
+        }
+
+        public static CommonTerminalSettings GetCommonTerminalSettings()
+        {
+            try
+            {
+                return Polaris.IO.Yaml.Read<CommonTerminalSettings>(System.IO.Path.Combine(Terminal.Settings.Directory,
+                    "Settings"));
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
     }
 }
