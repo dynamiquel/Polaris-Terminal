@@ -3,6 +3,8 @@ Terminal is a subset of Polaris that allows Unity developers to implement a feat
 
 For some reason, Unity doesn't come with a built-in developer console that allows you to execute commands or even easily see your logs in-game. This system is designed to fill that gap (and a bit more).
 
+<img src="https://user-images.githubusercontent.com/50085636/202845425-8884e73d-3b2a-46b4-8f3a-e8eddbbf9ab3.png">
+
 ## Features
 ### Commands
 - Commands
@@ -23,6 +25,8 @@ For some reason, Unity doesn't come with a built-in developer console that allow
 - Compresses old log text files
 - In-game GUI
 - Log mode (far less overhead, no filtering), recommended to use in release builds
+
+<img src="https://user-images.githubusercontent.com/50085636/202845483-820d7260-d8fa-4402-84ac-4090d974db05.png" height="40%" width="40%" >
 
 ### Extensibility
 - Easily add your own commands
